@@ -1,0 +1,115 @@
+##############################################################
+# Input parameters
+
+TARGET_TYPE = $(_TARGET_TYPE)
+SUB_TARGETS = $(_SUB_TARGETS)
+OUTPATH     = $(_OUTDIR)\$(OS)\$(CONFIG)
+
+##############################################################
+
+TARGET_EXT  = .$(TARGET_TYPE)
+TARGET_PATH = ..\$(OUTPATH)\$(TARGET)$(TARGET_EXT)
+
+##############################################################
+
+all: $(COMMAND)
+
+build: $(SUB_TARGETS) create_out_dir prepare_deps set_cmd_line
+	@cmd /e:on /v:on /c "\
+		@set OBJECTS= &\
+		@(for %%F in (*.cpp)          do @set OBJECTS=!OBJECTS! $(OUTPATH)\%%~nF.obj)&\
+		@set TRANSLS= &\
+		@(for %%F in (*.ts)           do @set TRANSLS=!TRANSLS! ..\$(OUTPATH)\%%~nF.qm)&\
+		@set ST_LIBS= &\
+		@(for %%F in ($(SUB_TARGETS)) do @set ST_LIBS=!ST_LIBS! ..\$(OUTPATH)\%%F.lib)&\
+		@set ROOTDIR=$(MAKEDIR)\\&\
+		@set ROOTDIR=!ROOTDIR:\$(TARGET)\\=!&\
+		$(MAKE) -nologo -e -f ..\Makefile.windows $(TARGET) _SUB_TARGETS="$(SUB_TARGETS)""
+
+clean: $(SUB_TARGETS)
+	@for %%F in (obj,d,pdb,exp,ilk,lib,dll,exe) do @(\
+		(if exist "$(OUTPATH)\*.%%F" del "$(OUTPATH)\*.%%F" /F /Q /S) & \
+		(if exist "..\$(OUTPATH)\$(TARGET).%%F" del "..\$(OUTPATH)\$(TARGET).%%F" /F /Q /S) \
+	)
+	@for %%F in (*.ts) do @(\
+		if exist "..\$(OUTPATH)\%%~nF.qm" del "..\$(OUTPATH)\%%~nF.qm" /F /Q /S\
+	)
+
+
+!IF "$(SUB_TARGETS: =)"!=""
+$(SUB_TARGETS):
+	@cd ..
+	@$(MAKE) -nologo $(COMMAND) TARGET="$@" OS="$(OS)" CONFIG="$(CONFIG)"
+	@cd "$(MAKEDIR)"
+!ENDIF
+	
+create_out_dir:
+	@if not exist "$(OUTPATH)" mkdir "$(OUTPATH)"
+	@if not exist "..\$(OUTPATH)" mkdir "..\$(OUTPATH)"
+
+prepare_deps:
+	@echo ###>$(OUTPATH)\$(TARGET).d
+	@for %%A in ($(OUTPATH)\*.obj) do @if not exist "$(OUTPATH)\%%~nA.d"   @(del "$(OUTPATH)\%%~nA.obj")
+	@for %%A in ($(OUTPATH)\*.d)   do @if not exist "$(OUTPATH)\%%~nA.obj" @(del "$(OUTPATH)\%%~nA.d")
+	@for %%A in ($(OUTPATH)\*.d)   do @if /i not "%%~nA"=="$(TARGET)" @(echo !INCLUDE %%A>>$(OUTPATH)\$(TARGET).d)
+
+
+set_cmd_line: $(TARGET_TYPE) $(CONFIG)
+	@set TRANS=lrelease
+	@echo TRANS=%%TRANS%%
+	@set COMPL=%%COMPL%% -Fd"$(OUTPATH)/" -Fo"$(OUTPATH)/" $(DEFINES) $(INCLUDES)
+	@echo COMPL=%%COMPL%%
+	@set BUILD=%%BUILD%% $(LIBS)
+	@echo BUILD=%%BUILD%%
+
+debug::
+	@set COMPL=cl -nologo -c -GS -W3 -Zi -EHsc -MDd
+!IF "$(TARGET_TYPE)"!="lib"
+debug:: ;@set BUILD=%%BUILD%% -debug
+!ENDIF
+
+release:
+	@set COMPL=cl -nologo -c -O2 -EHsc -MD
+	@set BUILD=%%BUILD%% -LTCG
+
+lib:
+	@set BUILD=lib -nologo
+dll:
+	@set BUILD=link -nologo -dll
+exe:
+	@set BUILD=link -nologo -subsystem:WINDOWS
+
+$(TARGET): $(TARGET_PATH) $(TRANSLS)
+
+$(TARGET_PATH): $(OBJECTS) $(ST_LIBS)
+	$(BUILD) $(ST_LIBS) $(OBJECTS) -out:$@
+
+!IF "$(OBJECTS: =)"!=""
+
+COMPL_INFO_STR=^^[^^N]" /c:"^^.[^^o]" /c:"^^..[^^t]" /c:"^^...[^^e]
+
+$(OBJECTS):
+	@echo $@: \>$(@:.obj=.d)
+	@cmd /e:on /v:on /c "\
+	(for /f "tokens=*" %%A in ('$(COMPL) -showIncludes $(@B).cpp^|findstr /ir /c:"$(ROOTDIR:\=\\)" /c:"$(COMPL_INFO_STR)"') do @(\
+		set FOUND_STRING=%%A&\
+		if not "!FOUND_STRING:Note^: including file^:^=!"=="!FOUND_STRING!" @(\
+			for /f "tokens=4,*" %%C in ('echo !FOUND_STRING!') do @(\
+				set PATH_STRING=%%C %%D&\
+				echo ..\!PATH_STRING:$(ROOTDIR)\=!\>>$(@:.obj=.d))\
+		) else (\
+			(if not "!FOUND_STRING:error^=!"=="!FOUND_STRING!" set ERROR=1)&\
+			echo !FOUND_STRING!\
+		)))&echo $(@B).cpp>>$(@:.obj=.d)&if !ERROR!==1 exit 1"
+
+# Include the generated *.d.
+!IF ![if not exist $(OUTPATH)\$(TARGET).d (exit /b 1)]
+!INCLUDE $(OUTPATH)\$(TARGET).d
+!ENDIF
+
+!ENDIF
+
+!IF "$(TRANSLS: =)"!=""
+$(TRANSLS): $(@B).ts
+	@where /q $(TRANS) && $(TRANS) $(@B).ts -qm $@ || echo $(TRANS) does not found! No translations!
+!ENDIF

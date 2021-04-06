@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+    <WINDOWS_QT_DIR>E:\Qt\5.15.0\msvc2015_64</WINDOWS_QT_DIR>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClInclude Include="DeclareMetaType.h" />
+    <ClInclude Include="FieldWidget.h" />
+    <ClInclude Include="Painter.h" />
+    <ClInclude Include="ItemDelegate.h" />
+    <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="SettingsBox.h" />
+    <ClInclude Include="SettingsDialog.h" />
+    <ClInclude Include="SubProxyModel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FieldWidget.cpp" />
+    <ClCompile Include="Painter.cpp" />
+    <ClCompile Include="ItemDelegate.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="SettingsBox.cpp" />
+    <ClCompile Include="SettingsDialog.cpp" />
+    <ClCompile Include="SubProxyModel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile" />
+    <None Include="translation_ru.ts" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D1B41E80-877F-43AC-9AF8-1E846032DFAE}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <NMakeOutput>$(OutDir)$(TargetName).exe</NMakeOutput>
+    <NMakeBuildCommandLine>cd.. &amp;&amp; nmake build TARGET="$(TargetName)" OS="windows" CONFIG="$(Configuration)"</NMakeBuildCommandLine>
+    <NMakeCleanCommandLine>cd.. &amp;&amp; nmake clean TARGET="$(TargetName)" OS="windows" CONFIG="$(Configuration)"</NMakeCleanCommandLine>
+    <OutDir>..\tmp\windows\$(Configuration)\</OutDir>
+    <IntDir>tmp\windows\$(Configuration)\</IntDir>
+    <NMakeIncludeSearchPath>
+    </NMakeIncludeSearchPath>
+    <IncludePath>$(WINDOWS_QT_DIR)\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <NMakeOutput>$(OutDir)$(TargetName).exe</NMakeOutput>
+    <NMakeCleanCommandLine>cd.. &amp;&amp; nmake clean TARGET="$(TargetName)" OS="windows" CONFIG="$(Configuration)"</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine>cd.. &amp;&amp; nmake build TARGET="$(TargetName)" OS="windows" CONFIG="$(Configuration)"</NMakeBuildCommandLine>
+    <OutDir>..\tmp\windows\$(Configuration)\</OutDir>
+    <IntDir>tmp\windows\$(Configuration)\</IntDir>
+    <NMakeIncludeSearchPath>
+    </NMakeIncludeSearchPath>
+    <IncludePath>$(WINDOWS_QT_DIR)\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

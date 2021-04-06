@@ -1,0 +1,106 @@
+##############################################################
+# Input parameters
+
+TARGET_TYPE := $(_TARGET_TYPE)
+SUB_TARGETS := $(_SUB_TARGETS)
+OUTPATH     := $(_OUTDIR)/$(OS)/$(CONFIG)
+
+##############################################################
+
+TARGET_EXT       := $(subst dll,.so,$(subst lib,.a,$(subst exe,,$(TARGET_TYPE))))
+TARGET_PREFIX    := $(subst dll,lib,$(subst lib,lib,$(subst exe,,$(TARGET_TYPE))))
+TARGET_PATH      := ../$(OUTPATH)/$(TARGET_PREFIX)$(TARGET)$(TARGET_EXT)
+
+##############################################################
+
+OBJECTS := $(addprefix $(OUTPATH)/,$(patsubst %.cpp,%.o,$(wildcard ./*.cpp)))
+TRANSLS := $(addprefix ../$(OUTPATH)/,$(patsubst %.ts,%.qm,$(wildcard ./*.ts)))
+DEPENDS := $(OBJECTS:.o=.d)
+# Lazy substitution
+ST_LIBS =  $(foreach SUB_TARGET,$(SUB_TARGETS),\
+	$(wildcard ../$(OUTPATH)/lib$(SUB_TARGET).a) $(wildcard ../$(OUTPATH)/lib$(SUB_TARGET).so))
+
+#-MT '$(patsubst %.cpp,%.o,$<)' Set the name of the target in the generated dependency file
+#-MF $@ Set the name of the generated dependency file
+#-M Instead of outputting the result of preprocessing, output a rule suitable for make describing the dependencies of the main source file
+#-MM Like -M but do not mention header files that are found in system header directories
+#-MP
+COMPL = g++ -MP -MMD -MT '$@' -std=c++14 -Wall -fPIC -pthread
+BUILD =
+TRANS = lrelease
+
+##############################################################
+
+all: $(COMMAND)
+
+build: $(SUB_TARGETS) create_out_dir prepare_deps set_cmd_line $(TARGET)
+
+clean: $(SUB_TARGETS)
+	@for ext in o d so a; do \
+		if ls $(OUTPATH)/*.$$ext 1>/dev/null 2>&1; then \
+			echo Deletion of: $(OUTPATH)/*.$$ext; \
+			rm $(OUTPATH)/*.$$ext; \
+		fi; \
+	done
+	@for file in $(TRANSLS) $(TARGET_PATH); do \
+		if [ -f "$$file" ]; then \
+			echo Deletion of: $$file; \
+			rm "$$file"; \
+		fi; \
+	done
+
+$(SUB_TARGETS):
+	@$(MAKE) --no-print-directory -C ../ $(COMMAND) TARGET=$@
+
+create_out_dir:
+	@mkdir -p "../$(OUTPATH)" && \
+	mkdir -p "$(OUTPATH)"
+
+prepare_deps:
+	@for file in $$(find -wholename "$(OUTPATH)/*.d"); do \
+		if [ ! -f $${file%.*}.o ]; then rm $$file; fi; \
+	done && \
+	for file in $$(find -wholename "$(OUTPATH)/*.o"); do \
+		if [ ! -f "$${file%.*}.d" ]; then rm $$file; fi; \
+	done
+
+set_cmd_line: $(TARGET_TYPE) $(CONFIG)
+	$(eval COMPL += $(DEFINES) $(INCLUDES) -c)
+
+lib:
+	$(eval BUILD += ar -rcs)
+
+dll:
+	$(eval BUILD += g++ -shared)
+
+exe:
+	$(eval BUILD += g++)
+
+debug:
+	$(eval COMPL += -g3)
+
+release:
+	$(eval COMPL += -O3)
+
+$(TARGET): $(TARGET_PATH) $(TRANSLS)
+
+# We need force building if some sub targets has not been build before
+# because variables are expanded on the firsr stage before sub target execution
+ifneq ($(words $(ST_LIBS)), $(words $(SUB_TARGETS)))
+.PHONY: $(TARGET_PATH)
+endif
+
+$(TARGET_PATH): $(OBJECTS) $(ST_LIBS)
+	$(BUILD) -o $@ $(OBJECTS) $(ST_LIBS) $(LIBS)
+
+$(OBJECTS):
+	$(COMPL) $(basename $(@F)).cpp -o $@
+
+.SECONDEXPANSION:
+$(TRANSLS): $$(basename $$(@F)).ts
+	@command -v $(TRANS) && $(TRANS) $(basename $(@F)).ts -qm $@ || echo $(TRANS) does not found! No translations!
+
+ifeq (0, $(words $(findstring $(COMMAND),clean)))
+#Ignore a makefile which does not exist or cannot be remade, with no error message
+-include $(DEPENDS)
+endif
